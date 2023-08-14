@@ -28,6 +28,7 @@ Same with the other types. You dont have to worry about much configuring. If you
 It will add them all to a defalt log file.  
 """
 
+# I may 86 this since this classes prinary function is logging files. 
 class ScreenPrinter:
     def __init__(self):
         print("ScreenPrinter class... created.")
@@ -36,7 +37,7 @@ class ScreenPrinter:
         print(message)
 
 
-class EZLogger:
+class APILogger:
     class DateTime:
         def __init__(self):
             print("DateTime class... created")
@@ -193,14 +194,14 @@ class EZLogger:
 
             # Rename the current logfile.
             new_logfile_full, new_logfile_only = get_new_filename(logfile)
-# SAFETY    filesys.rename(logfile, new_logfile_full)
+            filesys.rename(logfile, new_logfile_full)
 
             sub_dir: str = self.get_sub_directory(level)
             current_location: str = new_logfile_full
             archive_location: str = f'{self.archive_directory}{sub_dir}{new_logfile_only}'
 
             # Move it to its appropriate sub directory.
-# SAFETY    filesys.move(current_location, archive_location)
+            filesys.move(current_location, archive_location)
 
             print(f"\nRenamed: {logfile} to: {new_logfile_full}")
             print(f"\nMoved: {current_location} TO: {archive_location}"            )
@@ -213,10 +214,10 @@ class EZLogger:
                 print(f"func: Archive.set_archive_directory() \n{str(exc)}")
 
 
-    INFO_PRE: str = "INFO: "
+    INFO_PRE: str =  "INFO: "
     DEBUG_PRE: str = "DEBUG: "
     ERROR_PRE: str = "ERROR: "
-    WARN_PRE: str = "WARNING: "
+    WARN_PRE: str =  "WARNING: "
    # LOGIN_PRE: str ="LOGIN INFO"
 
     FILE: int = 0
