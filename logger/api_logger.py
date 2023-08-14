@@ -3,7 +3,7 @@ from datetime import datetime, time, timedelta
 import re
 from os.path import join as os_join
 from .file_handler import filesys
-from settings import settings
+from .settings import settings
 
 
 """
@@ -31,7 +31,8 @@ It will add them all to a defalt log file.
 # I may 86 this since this classes prinary function is logging files. 
 class ScreenPrinter:
     def __init__(self):
-        print("ScreenPrinter class... created.")
+        pass
+        #print("ScreenPrinter class... created.")
 
     def to_screen(self, message: str) -> None:
         print(message)
@@ -40,7 +41,8 @@ class ScreenPrinter:
 class APILogger:
     class DateTime:
         def __init__(self):
-            print("DateTime class... created")
+            pass
+            #print("DateTime class... created")
 
         @staticmethod
         def date_time_now() -> tuple[str]:
@@ -99,7 +101,7 @@ class APILogger:
             self.Level = Level
             self.create_archive_sub_directories()
 
-            print("Archive class... created")
+            #print("Archive class... created")
 
         def clear_subs(self, subs: list[str]) -> None:
             '''
@@ -127,7 +129,7 @@ class APILogger:
                 msg: str = (
                     "was " if state == "created" else "already"
                 )
-                print(f"Sub directory: '{sub}' {msg} {state}.")
+               # print(f"Sub directory: '{sub}' {msg} {state}.")
             
         def get_line_cnt(self, file_name: str) -> int:
             """
@@ -426,7 +428,7 @@ class APILogger:
 
         self.__route_output(message, self.Level.INFO, timestamp)
 
-    def warning(self, message: str, timestamp: bool = False) -> None:
+    def warn(self, message: str, timestamp: bool = False) -> None:
         self.__route_output(message, self.Level.WARN, timestamp)
 
     def debug(self, message: str, timestamp: bool = False) -> None:
@@ -455,3 +457,16 @@ class APILogger:
             )
 
 
+# 
+# I usuallly instantiate the logger in the logger file (HERE) after the class 
+# definitions, and them import it wherever I need it.
+#  
+logzz = APILogger(
+    info_filename="INFO_logzz.log",
+    debug_filename="DEBUG_logzz.log",
+    error_filename="ERROR_logzz.log",
+    warning_filename=None,
+    output_destination=APILogger.FILE,
+    archive_log_files=True,
+    log_file_max_size=1000,
+)

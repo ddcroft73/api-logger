@@ -4,8 +4,8 @@ It's basically a simple logger that organizes all the logs for me. It's not as '
 
 - INFO
 - ERROR
-- WARNING
+- WARN(ING)
 - DEBUG
-- LOGIN (New: I Feel the need to log every login attempt.)
+- LOGIN (New: I Feel the need to log every login attempt, but I am still adding this.)
 
 It is up to the programmer where to use these and it just marks the logs and organizes them. 
