@@ -9,3 +9,10 @@ It's basically a simple logger that organizes all the logs for me. It's not as '
 - LOGIN (New: I Feel the need to log every login attempt, but I am still adding this.)
 
 It is up to the programmer where to use these and it just marks the logs and organizes them. 
+
+### Working on:
+Iam going to add a LOGIN tracker, that will send all LOGIN info from the API to its on file. 
+I just learned that I can use the same instance of the APILogger to 'log' thnoings that happen inside the log code. 
+So I am going to exploit that as well 
+- LOGIN Info tracking
+- Internal logger logging.

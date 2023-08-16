@@ -112,17 +112,14 @@ class APILogger:
                 filesys.rmdir(os_join(self.archive_directory, sub))
                 print(f"Deleted: {os_join(self.archive_directory, sub)}")
 
-            # Rebuild the archive directories... we are just clearing not deleting.
+            # Rebuild the archive directories... we are just clearing not deleting. They ned to be 
+            # present incase an archive needs to take place. 
             self.create_archive_sub_directories()
             print(f'func: clear_subs() Recreated Sub Directories')
             
         def create_archive_sub_directories(self) -> None:
             """
             Creates the sub directories to house the archived logs.
-            If they already exist, nothing is done but a flag is returned to specify
-            It exists. If it does not exist, it is created and a flag is returned saying it
-            was just created... (This was really only done so I could use this nifty ternary
-            operation I came up with.)
             """
             for sub in self.ArchiveSubDirectories.to_list():
                 state: str = filesys.mkdir(os_join(self.archive_directory, sub))
@@ -205,9 +202,12 @@ class APILogger:
 
             # Move it to its appropriate sub directory.
             filesys.move(current_location, archive_location)
-
-            print(f"\nRenamed: {logfile} to: {new_logfile_full}")
-            print(f"\nMoved: {current_location} TO: {archive_location}"            )
+            
+            # Use the instance of the APILogger 
+            logzz.warn(f'archiving... {logzz.log_file_max_size}')
+            
+            #print(f"\nRenamed: {logfile} to: {new_logfile_full}")
+            #print(f"\nMoved: {current_location} TO: {archive_location}"            )
 
         def set_archive_directory(self, directory: str) -> None:
             """Will create the main directory for all logfiles to be archived to."""
