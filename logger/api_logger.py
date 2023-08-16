@@ -197,10 +197,11 @@ class APILogger:
             # Rename the current logfile.
             new_logfile_full, new_logfile_only = get_new_filename(logfile)
             filesys.rename(logfile, new_logfile_full)
-
+            
+            # select right logfile type to store it.
             sub_dir: str = self.get_sub_directory(level)
             current_location: str = new_logfile_full
-            archive_location: str = f'{self.archive_directory}{sub_dir}{new_logfile_only}'
+            archive_location: str = f'{self.archive_directory}/{sub_dir}/{new_logfile_only}'
 
             # Move it to its appropriate sub directory.
             filesys.move(current_location, archive_location)
@@ -317,7 +318,7 @@ class APILogger:
         def ready_message(message: str) -> tuple[str]:
             """
             add a prefix to the message string, and reference
-            the correct file to write to.
+            the correct file logfile.
             """
             # If the message happens to come back as None. or its a dictionary,
             # modify the input so its reflected and does not choke.
@@ -366,7 +367,7 @@ class APILogger:
         #
         if self.archive.get_line_cnt(fname) >= self.log_file_max_size:
             self.archive.archive_logfile(logfile=fname, level=level)
-            # create new log file with the original name
+            # create new log file in place of the other, with the original name
             self.__set_log_filename(fname)
         #
         # Write to the logfile
@@ -440,8 +441,9 @@ class APILogger:
         """This method creates the initial file. If a file already exists, it does nada.
         Sets up the logfile.
         """
+        date, time = self.d_and_t.date_time_now()    
         header: str = (
-            f" [ {file_name} ] created on {self.start_date} @ {self.start_time}\n\n"
+            f" [ {file_name} ] created on {date} @ {time}\n\n"
         )
         if Path(file_name).exists():
             return
@@ -468,5 +470,5 @@ logzz = APILogger(
     warning_filename=None,
     output_destination=APILogger.FILE,
     archive_log_files=True,
-    log_file_max_size=1000,
+    log_file_max_size=20,
 )
