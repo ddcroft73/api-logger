@@ -1,0 +1,3 @@
+1. Refactor the logger. 
+   a. Drop the router method
+   b. 86 ready_messages.
