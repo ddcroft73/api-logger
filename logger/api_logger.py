@@ -314,17 +314,18 @@ class APILogger():
     #   
     def __save_log_entry(
             self,  
-            message: str, stream: int, timestamp: bool, stream2: int=None
+            message: str, 
+            stream: int, 
+            timestamp: bool, 
+            file_name: str
     ) -> None:
         
-        fname: str | None = None
-
         def add_final_touches(file_name: str, message: str):
             """
             last chance to set the filename, add timestamp if applicablew
             and \n final touches.
             """
-            if file_name is None:
+            if file_name is None or file_name == "None":
                 file_name = APILogger.DEFAULT_LOG_FILE
             else:
                 file_name = os_join(APILogger.LOG_DIRECTORY, file_name)
@@ -337,38 +338,6 @@ class APILogger():
 
             return (file_name, message)
 
-        def ready_message(message: str) -> tuple[str]:
-            """
-            add a prefix to the message string, and reference
-            the correct file logfile.
-            """
-            # If the message happens to come back as None. or its a dictionary,
-            # modify the input so its reflected and does not choke.
-            if message == None: message = "None"
-            if isinstance(message, dict):
-                message = str(message)
-                
-            if stream == APILogger.Stream.INFO:
-                file_name = self.info_filename
-                message = APILogger.INFO_PRE + message
-
-            elif stream == APILogger.Stream.WARN:
-                file_name = self.warning_filename
-                message = APILogger.WARN_PRE + message
-
-            elif stream == APILogger.Stream.DEBUG:
-                file_name = self.debug_filename
-                message = APILogger.DEBUG_PRE + message
-
-            elif stream == APILogger.Stream.ERROR:
-                file_name = self.error_filename
-                message = APILogger.ERROR_PRE + message
-
-            elif stream == APILogger.Stream.INTERNAL:
-                file_name = self.internal_filename
-                message = f'{APILogger.INTERNAL_PRE}  {stream2} {message}' 
-
-            return (file_name, message)
 
         def commit_message(message: str, file_name: str) -> None:
             """
@@ -382,25 +351,26 @@ class APILogger():
                 logzz.internal(
                     APILogger.ERROR_PRE,
                     "ERROR: func: commit_message() There was an error attempting a write action on:\n"
-                    f"{fname}\n"
+                    f"{logfile}\n"
                     f"Check path and spelling. \nHere go yo Exception: {str(exc)}"
                 )
 
-#
-        # Finalize the logfile entry.
-        fname, message = ready_message(message)
-        fname, message = add_final_touches(file_name=fname, message=message)
+        # Sometimes message may be None or a dixt. Just represent them in string form. 
+        if message == None: message = "None"
+        if isinstance(message, dict):
+            message = str(message)
+        
+
+        logfile, message = add_final_touches(file_name=file_name, message=message)
         #
         # Before Writiing to the file, check its size to see if it's time to archive it.
         #
-        if self.archive.get_line_cnt(fname) >= self.log_file_max_size:
-            self.archive.archive_logfile(logfile=fname, stream=stream)
+        if self.archive.get_line_cnt(logfile) >= self.log_file_max_size:
+            self.archive.archive_logfile(logfile=logfile, stream=stream)
             # create new log file in place of the other, with the original name
-            self.__set_log_filename(fname)
-        #
-        # Write to the logfile
-        #
-        commit_message(message, fname)
+            self.__set_log_filename(logfile)
+
+        commit_message(message, logfile)
 
 
     def __print_screen(self, message: str, level: int, timestamp: bool) -> None:
@@ -424,22 +394,6 @@ class APILogger():
 
         self.prnt.to_screen(f"{msg_prefix}{message}")
 
-
-    def __route_output(self, message: str, level: int, timestamp: bool = False) -> None:
-        """
-        Whenever a log message is invoked, this method will route the output to the proper direction(s)
-        """
-
-        if self.output_destination == self.FILE:
-            self.__save_log_entry(message, level, timestamp)
-
-        elif self.output_destination == self.SCREEN:
-            self.__print_screen(message, timestamp)
-
-        elif self.output_destination == self.BOTH:
-            self.__print_screen(message, level, timestamp)
-            self.__save_log_entry(message, level, timestamp)
-
     #
     # Log Message Interfaces
     #
@@ -451,22 +405,51 @@ class APILogger():
     Before any file op takes place, just heck existence? if its not there, then create it to keep it from crashing?
     '''
     def error(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Stream.ERROR, timestamp)
+        message = f"{self.ERROR_PRE} {message}"
+        self.__save_log_entry(
+            message,
+            self.Stream.ERROR,
+            timestamp,
+            self.error_filename
+        )       
 
     def info(self, message: str, timestamp: bool = False) -> None:
-
-        self.__route_output(message, self.Stream.INFO, timestamp)
+        message = f"{self.INFO_PRE} {message}"
+        self.__save_log_entry(
+            message,
+            self.Stream.INFO,
+            timestamp,
+            self.info_filename
+        )       
+        
 
     def warn(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Stream.WARN, timestamp)
+        message = f"{self.WARN_PRE} {message}"
+        self.__save_log_entry(
+            message,
+            self.Stream.WARN,
+            timestamp,
+            self.warning_filename
+        )       
 
     def debug(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Stream.DEBUG, timestamp)
+        message = f"{self.DEBUG_PRE} {message}"
+        self.__save_log_entry(
+            message,
+            self.Stream.DEBUG,
+            timestamp,
+            self.debug_filename
+        )        
 
     def internal(self, stream2: int, message: str, timestamp: bool = False) -> None:
-       # origin: str = '[ INTERNAL ] '
-        #message = origin + message
-        self.__save_log_entry(message, self.Stream.INTERNAL, timestamp, stream2)
+        # Brand the message
+        message = f'{self.INTERNAL_PRE}  {stream2} {message}'
+        self.__save_log_entry( 
+            message, 
+            self.Stream.INTERNAL, 
+            timestamp, 
+            self.internal_filename
+        )
 
     def __set_log_filename(self, file_name: str) -> None:
         """This method creates the initial file. If a file already exists, it does nada.
