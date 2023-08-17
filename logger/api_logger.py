@@ -29,7 +29,7 @@ It will add them all to a defalt log file.
 """
 
 # I may 86 this since this classes prinary function is logging files. 
-class ScreenPrinter:
+class ScreenPrinter():
     def __init__(self):
         pass
         #print("ScreenPrinter class... created.")
@@ -38,8 +38,19 @@ class ScreenPrinter:
         print(message)
 
 
-class APILogger:
-    class DateTime:
+
+
+class APILogger():
+
+    class Stream():
+        INFO: int = 10
+        DEBUG: int = 20
+        ERROR: int = 30
+        WARN: int = 40
+        LOGIN: int=60
+        INTERNAL: int = 50
+
+    class DateTime():
         def __init__(self):
             pass
             #print("DateTime class... created")
@@ -71,7 +82,7 @@ class APILogger:
         
         """
 
-        class ArchiveSubDirectories:
+        class ArchiveSubDirectories():
             DEBUG_DIR: str = "debug"
             INFO_DIR: str = "info"
             WARN_DIR: str = "warn"
@@ -93,12 +104,11 @@ class APILogger:
                 return directories
 
 
-        def __init__(self, archive_directory: str, Stream: int):
+        def __init__(self, archive_directory: str, ):
             """
             
             """
             self.archive_directory = archive_directory
-            self.Stream = Stream
             self.create_archive_sub_directories()
 
             #print("Archive class... created")
@@ -209,7 +219,7 @@ class APILogger:
             # Use the instance of the APILogger 
             
             logzz.internal(
-                APILogger.Stream.INFO, 
+                APILogger.INFO_PRE, 
                 f'archiving... {logzz.log_file_max_size}'
             )
 
@@ -235,13 +245,6 @@ class APILogger:
     SCREEN: int = 1
     BOTH: int = 2
 
-    class Stream:
-        INFO: int = 10
-        DEBUG: int = 20
-        ERROR: int = 30
-        WARN: int = 40
-        LOGIN: int=60
-        INTERNAL: int = 50
        # LOGIN: int = 50
     
     LOG_DIRECTORY: str = settings.LOG_DIRECTORY    
@@ -259,8 +262,7 @@ class APILogger:
         log_file_max_size: int = 1000,
     ) -> None:
         self.archive = self.Archive(
-            archive_directory=self.LOG_ARCHIVE_DIRECTORY, 
-            Stream=self.Stream
+            archive_directory=APILogger.LOG_ARCHIVE_DIRECTORY
         )
         self.d_and_t = self.DateTime()
         self.prnt = ScreenPrinter()
@@ -288,9 +290,9 @@ class APILogger:
         excess lof files.
         """
         if self.archive_log_files:
-            self.archive.set_archive_directory(self.LOG_ARCHIVE_DIRECTORY)
+            self.archive.set_archive_directory(APILogger.LOG_ARCHIVE_DIRECTORY)
 
-        if self.output_destination in [self.FILE, self.BOTH]:
+        if self.output_destination in [APILogger.FILE, APILogger.BOTH]:
         #if self.output_destination == self.FILE or self.output_destination == self.BOTH:
             file_names = [
                 self.info_filename,
@@ -302,13 +304,19 @@ class APILogger:
 
             for file_name in file_names:
                 if file_name is not None:
-                    self.__set_log_filename(os_join(self.LOG_DIRECTORY, file_name))
+                    self.__set_log_filename(os_join(APILogger.LOG_DIRECTORY, file_name))
 
             if any(filename is None for filename in file_names):
-                self.__set_log_filename(self.DEFAULT_LOG_FILE)
+                self.__set_log_filename(APILogger.DEFAULT_LOG_FILE)
 
-
-    def __save_log(self, message: str, stream: int, timestamp: bool) -> None:
+    #
+    # Pretty much the 
+    #   
+    def __save_log_entry(
+            self,  
+            message: str, stream: int, timestamp: bool, stream2: int=None
+    ) -> None:
+        
         fname: str | None = None
 
         def add_final_touches(file_name: str, message: str):
@@ -317,9 +325,9 @@ class APILogger:
             and \n final touches.
             """
             if file_name is None:
-                file_name = self.DEFAULT_LOG_FILE
+                file_name = APILogger.DEFAULT_LOG_FILE
             else:
-                file_name = os_join(self.LOG_DIRECTORY, file_name)
+                file_name = os_join(APILogger.LOG_DIRECTORY, file_name)
 
             if timestamp:
                 date_time: str = f"{self.d_and_t.date_time_now()[0]} {self.d_and_t.date_time_now()[1]}"
@@ -340,25 +348,25 @@ class APILogger:
             if isinstance(message, dict):
                 message = str(message)
                 
-            if stream == self.Stream.INFO:
+            if stream == APILogger.Stream.INFO:
                 file_name = self.info_filename
-                message = self.INFO_PRE + message
+                message = APILogger.INFO_PRE + message
 
-            elif stream == self.Stream.WARN:
+            elif stream == APILogger.Stream.WARN:
                 file_name = self.warning_filename
-                message = self.WARN_PRE + message
+                message = APILogger.WARN_PRE + message
 
-            elif stream == self.Stream.DEBUG:
+            elif stream == APILogger.Stream.DEBUG:
                 file_name = self.debug_filename
-                message = self.DEBUG_PRE + message
+                message = APILogger.DEBUG_PRE + message
 
-            elif stream == self.Stream.ERROR:
+            elif stream == APILogger.Stream.ERROR:
                 file_name = self.error_filename
-                message = self.ERROR_PRE + message
+                message = APILogger.ERROR_PRE + message
 
-            elif stream == self.Stream.INTERNAL:
+            elif stream == APILogger.Stream.INTERNAL:
                 file_name = self.internal_filename
-                message = f'"{self.INTERNAL_PRE}"  [ {message} ]' 
+                message = f'{APILogger.INTERNAL_PRE}  {stream2} {message}' 
 
             return (file_name, message)
 
@@ -372,12 +380,13 @@ class APILogger:
 
             except Exception as exc:
                 logzz.internal(
-                    APILogger.Stream.ERROR,
+                    APILogger.ERROR_PRE,
                     "ERROR: func: commit_message() There was an error attempting a write action on:\n"
                     f"{fname}\n"
                     f"Check path and spelling. \nHere go yo Exception: {str(exc)}"
                 )
 
+#
         # Finalize the logfile entry.
         fname, message = ready_message(message)
         fname, message = add_final_touches(file_name=fname, message=message)
@@ -422,14 +431,14 @@ class APILogger:
         """
 
         if self.output_destination == self.FILE:
-            self.__save_log(message, level, timestamp)
+            self.__save_log_entry(message, level, timestamp)
 
         elif self.output_destination == self.SCREEN:
             self.__print_screen(message, timestamp)
 
         elif self.output_destination == self.BOTH:
             self.__print_screen(message, level, timestamp)
-            self.__save_log(message, level, timestamp)
+            self.__save_log_entry(message, level, timestamp)
 
     #
     # Log Message Interfaces
@@ -454,10 +463,10 @@ class APILogger:
     def debug(self, message: str, timestamp: bool = False) -> None:
         self.__route_output(message, self.Stream.DEBUG, timestamp)
 
-    def internal(self, stream: int, message: str, timestamp: bool = False) -> None:
+    def internal(self, stream2: int, message: str, timestamp: bool = False) -> None:
        # origin: str = '[ INTERNAL ] '
         #message = origin + message
-        self.__save_log(message, self.Stream.INTERNAL, timestamp)
+        self.__save_log_entry(message, self.Stream.INTERNAL, timestamp, stream2)
 
     def __set_log_filename(self, file_name: str) -> None:
         """This method creates the initial file. If a file already exists, it does nada.
