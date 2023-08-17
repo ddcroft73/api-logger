@@ -57,7 +57,7 @@ class APILogger:
         def timedelta() -> timedelta:
             return timedelta
         
-    class Archive:
+    class Archive():
         """
         How the archiving will work:
 
@@ -76,7 +76,7 @@ class APILogger:
             INFO_DIR: str = "info"
             WARN_DIR: str = "warn"
             ERROR_DIR: str = "error"
-            LOGIN_INFO: str = "login"
+            LOGIN_DIR: str = "login"
 
             @classmethod
             def to_list(cls) -> list:
@@ -93,12 +93,12 @@ class APILogger:
                 return directories
 
 
-        def __init__(self, archive_directory: str, Level):
+        def __init__(self, archive_directory: str, Stream: int):
             """
             
             """
             self.archive_directory = archive_directory
-            self.Level = Level
+            self.Stream = Stream
             self.create_archive_sub_directories()
 
             #print("Archive class... created")
@@ -137,28 +137,31 @@ class APILogger:
             file_lines: list[str] = filesys.get_contents(file_name).split("\n")
             return len(file_lines)
 
-        def get_sub_directory(self, level: int) -> str:
+        def get_sub_directory(self, stream: int) -> str:
             '''
-            Returns the Sub directory associated to the level. 
+            Returns the Sub directory associated to the stream. 
             '''
             sub_dir: str = ""
-            if level == self.Level.INFO:
+            if stream == APILogger.Stream.INFO:
                 sub_dir = self.ArchiveSubDirectories.INFO_DIR
 
-            elif level == self.Level.ERROR:
+            elif stream == APILogger.Stream.ERROR:
                 sub_dir = self.ArchiveSubDirectories.ERROR_DIR
 
-            elif level == self.Level.WARN:
+            elif stream == APILogger.Stream.WARN:
                 sub_dir = self.ArchiveSubDirectories.WARN_DIR
 
-            elif level == self.Level.DEBUG:
+            elif stream == APILogger.Stream.DEBUG:
                 sub_dir = self.ArchiveSubDirectories.DEBUG_DIR
+
+            elif stream == APILogger.Stream.LOGIN:
+                sub_dir = self.ArchiveSubDirectories.LOGIN_DIR
 
             return sub_dir
         #
         # Think about error handling in this method??
         #
-        def archive_logfile(self, logfile: str, level: int) -> None:
+        def archive_logfile(self, logfile: str, stream: int) -> None:
             """
                 Moves the logfile from its old location to a new location after renaming .
                 Creates a new logfile in its place and image.
@@ -196,7 +199,7 @@ class APILogger:
             filesys.rename(logfile, new_logfile_full)
             
             # select right logfile type to store it.
-            sub_dir: str = self.get_sub_directory(level)
+            sub_dir: str = self.get_sub_directory(stream)
             current_location: str = new_logfile_full
             archive_location: str = f'{self.archive_directory}/{sub_dir}/{new_logfile_only}'
 
@@ -204,8 +207,12 @@ class APILogger:
             filesys.move(current_location, archive_location)
             
             # Use the instance of the APILogger 
-            logzz.warn(f'archiving... {logzz.log_file_max_size}')
             
+            logzz.internal(
+                APILogger.Stream.INFO, 
+                f'archiving... {logzz.log_file_max_size}'
+            )
+
             #print(f"\nRenamed: {logfile} to: {new_logfile_full}")
             #print(f"\nMoved: {current_location} TO: {archive_location}"            )
 
@@ -221,17 +228,20 @@ class APILogger:
     DEBUG_PRE: str = "DEBUG: "
     ERROR_PRE: str = "ERROR: "
     WARN_PRE: str =  "WARNING: "
+    INTERNAL_PRE: str= 'INTERNAL'
    # LOGIN_PRE: str ="LOGIN INFO"
 
     FILE: int = 0
     SCREEN: int = 1
     BOTH: int = 2
 
-    class Level:
+    class Stream:
         INFO: int = 10
         DEBUG: int = 20
         ERROR: int = 30
         WARN: int = 40
+        LOGIN: int=60
+        INTERNAL: int = 50
        # LOGIN: int = 50
     
     LOG_DIRECTORY: str = settings.LOG_DIRECTORY    
@@ -250,7 +260,7 @@ class APILogger:
     ) -> None:
         self.archive = self.Archive(
             archive_directory=self.LOG_ARCHIVE_DIRECTORY, 
-            Level=self.Level
+            Stream=self.Stream
         )
         self.d_and_t = self.DateTime()
         self.prnt = ScreenPrinter()
@@ -263,6 +273,8 @@ class APILogger:
         self.error_filename = error_filename
         self.warning_filename = warning_filename
         self.debug_filename = debug_filename
+        # file to log internal messages: default
+        self.internal_filename = 'internal.log'
         self.output_destination = output_destination  # FILE, SCREEN, or BOTH
         self.archive_log_files = archive_log_files 
         self.log_file_max_size = log_file_max_size    # DEBUGING=5      
@@ -278,12 +290,14 @@ class APILogger:
         if self.archive_log_files:
             self.archive.set_archive_directory(self.LOG_ARCHIVE_DIRECTORY)
 
-        if self.output_destination == self.FILE or self.output_destination == self.BOTH:
+        if self.output_destination in [self.FILE, self.BOTH]:
+        #if self.output_destination == self.FILE or self.output_destination == self.BOTH:
             file_names = [
                 self.info_filename,
                 self.error_filename,
                 self.warning_filename,
                 self.debug_filename,
+                self.internal_filename
             ]
 
             for file_name in file_names:
@@ -294,7 +308,7 @@ class APILogger:
                 self.__set_log_filename(self.DEFAULT_LOG_FILE)
 
 
-    def __save_log(self, message: str, level: int, timestamp: bool) -> None:
+    def __save_log(self, message: str, stream: int, timestamp: bool) -> None:
         fname: str | None = None
 
         def add_final_touches(file_name: str, message: str):
@@ -326,21 +340,25 @@ class APILogger:
             if isinstance(message, dict):
                 message = str(message)
                 
-            if level == self.Level.INFO:
+            if stream == self.Stream.INFO:
                 file_name = self.info_filename
                 message = self.INFO_PRE + message
 
-            elif level == self.Level.WARN:
+            elif stream == self.Stream.WARN:
                 file_name = self.warning_filename
                 message = self.WARN_PRE + message
 
-            elif level == self.Level.DEBUG:
+            elif stream == self.Stream.DEBUG:
                 file_name = self.debug_filename
                 message = self.DEBUG_PRE + message
 
-            elif level == self.Level.ERROR:
+            elif stream == self.Stream.ERROR:
                 file_name = self.error_filename
                 message = self.ERROR_PRE + message
+
+            elif stream == self.Stream.INTERNAL:
+                file_name = self.internal_filename
+                message = f'"{self.INTERNAL_PRE}"  [ {message} ]' 
 
             return (file_name, message)
 
@@ -353,7 +371,8 @@ class APILogger:
                 filesys.write(file_name, message, mode="a")
 
             except Exception as exc:
-                print(
+                logzz.internal(
+                    APILogger.Stream.ERROR,
                     "ERROR: func: commit_message() There was an error attempting a write action on:\n"
                     f"{fname}\n"
                     f"Check path and spelling. \nHere go yo Exception: {str(exc)}"
@@ -366,7 +385,7 @@ class APILogger:
         # Before Writiing to the file, check its size to see if it's time to archive it.
         #
         if self.archive.get_line_cnt(fname) >= self.log_file_max_size:
-            self.archive.archive_logfile(logfile=fname, level=level)
+            self.archive.archive_logfile(logfile=fname, stream=stream)
             # create new log file in place of the other, with the original name
             self.__set_log_filename(fname)
         #
@@ -379,16 +398,16 @@ class APILogger:
         """two guesses..."""
         msg_prefix: str
 
-        if level == self.Level.INFO:
+        if level == self.Stream.INFO:
             msg_prefix = self.INFO_PRE
 
-        elif level == self.Level.WARN:
+        elif level == self.Stream.WARN:
             msg_prefix = self.WARN_PRE
 
-        elif level == self.Level.DEBUG:
+        elif level == self.Stream.DEBUG:
             msg_prefix = self.DEBUG_PRE
 
-        elif level == self.Level.ERROR:
+        elif level == self.Stream.ERROR:
             msg_prefix = self.ERROR_PRE
         
         if timestamp:
@@ -423,19 +442,22 @@ class APILogger:
     Before any file op takes place, just heck existence? if its not there, then create it to keep it from crashing?
     '''
     def error(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Level.ERROR, timestamp)
+        self.__route_output(message, self.Stream.ERROR, timestamp)
 
     def info(self, message: str, timestamp: bool = False) -> None:
 
-        self.__route_output(message, self.Level.INFO, timestamp)
+        self.__route_output(message, self.Stream.INFO, timestamp)
 
     def warn(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Level.WARN, timestamp)
+        self.__route_output(message, self.Stream.WARN, timestamp)
 
     def debug(self, message: str, timestamp: bool = False) -> None:
-        self.__route_output(message, self.Level.DEBUG, timestamp)
+        self.__route_output(message, self.Stream.DEBUG, timestamp)
 
-
+    def internal(self, stream: int, message: str, timestamp: bool = False) -> None:
+       # origin: str = '[ INTERNAL ] '
+        #message = origin + message
+        self.__save_log(message, self.Stream.INTERNAL, timestamp)
 
     def __set_log_filename(self, file_name: str) -> None:
         """This method creates the initial file. If a file already exists, it does nada.
