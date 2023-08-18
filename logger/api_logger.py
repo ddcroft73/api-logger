@@ -28,17 +28,9 @@ Same with the other types. You dont have to worry about much configuring. If you
 It will add them all to a defalt log file.  
 """
 
-# I may 86 this since this classes prinary function is logging files. 
 class ScreenPrinter():
-    def __init__(self):
-        pass
-        #print("ScreenPrinter class... created.")
-
     def to_screen(self, message: str) -> None:
         print(message)
-
-
-
 
 class APILogger():
 
@@ -47,7 +39,7 @@ class APILogger():
         DEBUG: int = 20
         ERROR: int = 30
         WARN: int = 40
-        LOGIN: int=60
+        LOGIN: int = 60
         INTERNAL: int = 50
 
     class DateTime():
@@ -216,11 +208,13 @@ class APILogger():
             # Move it to its appropriate sub directory.
             filesys.move(current_location, archive_location)
             
-            # Use the instance of the APILogger 
+            # Use the instance of the APILogger       
             
             logzz.internal(
                 APILogger.INFO_PRE, 
-                f'archiving... {logzz.log_file_max_size}'
+                f'Archiving...        File size: {logzz.log_file_max_size} lines.'
+                #f"\nRenamed: {logfile} to: {new_logfile_full}\n"
+                #f"\nMoved: {current_location} to: \n{archive_location}\n\n"
             )
 
             #print(f"\nRenamed: {logfile} to: {new_logfile_full}")
@@ -231,14 +225,15 @@ class APILogger():
             try:
                 filesys.mkdir(directory)
             except Exception as exc:
-                print(f"func: Archive.set_archive_directory() \n{str(exc)}")
+                logzz.internal(APILogger.ERROR_PRE, f"func: Archive.set_archive_directory() \n{str(exc)}")
+                
 
 
     INFO_PRE: str =  "INFO: "
     DEBUG_PRE: str = "DEBUG: "
     ERROR_PRE: str = "ERROR: "
     WARN_PRE: str =  "WARNING: "
-    INTERNAL_PRE: str= 'INTERNAL'
+    INTERNAL_PRE: str= '[ INTERNAL ]'
    # LOGIN_PRE: str ="LOGIN INFO"
 
     FILE: int = 0
@@ -257,12 +252,12 @@ class APILogger():
         error_filename: str = None,
         warning_filename: str = None,
         debug_filename: str = None,
-        output_destination: str = FILE,
+       # output_destination: str = FILE,
         archive_log_files: bool = True,
         log_file_max_size: int = 1000,
     ) -> None:
         self.archive = self.Archive(
-            archive_directory=APILogger.LOG_ARCHIVE_DIRECTORY
+            archive_directory=self.LOG_ARCHIVE_DIRECTORY
         )
         self.d_and_t = self.DateTime()
         self.prnt = ScreenPrinter()
@@ -277,7 +272,6 @@ class APILogger():
         self.debug_filename = debug_filename
         # file to log internal messages: default
         self.internal_filename = 'internal.log'
-        self.output_destination = output_destination  # FILE, SCREEN, or BOTH
         self.archive_log_files = archive_log_files 
         self.log_file_max_size = log_file_max_size    # DEBUGING=5      
 
@@ -290,10 +284,8 @@ class APILogger():
         excess lof files.
         """
         if self.archive_log_files:
-            self.archive.set_archive_directory(APILogger.LOG_ARCHIVE_DIRECTORY)
+            self.archive.set_archive_directory(self.LOG_ARCHIVE_DIRECTORY)
 
-        if self.output_destination in [APILogger.FILE, APILogger.BOTH]:
-        #if self.output_destination == self.FILE or self.output_destination == self.BOTH:
             file_names = [
                 self.info_filename,
                 self.error_filename,
@@ -304,13 +296,13 @@ class APILogger():
 
             for file_name in file_names:
                 if file_name is not None:
-                    self.__set_log_filename(os_join(APILogger.LOG_DIRECTORY, file_name))
+                    self.__set_log_filename(os_join(self.LOG_DIRECTORY, file_name))
 
             if any(filename is None for filename in file_names):
-                self.__set_log_filename(APILogger.DEFAULT_LOG_FILE)
+                self.__set_log_filename(self.DEFAULT_LOG_FILE)
 
     #
-    # Pretty much the 
+    # Pretty much the engine.
     #   
     def __save_log_entry(
             self,  
@@ -320,7 +312,7 @@ class APILogger():
             file_name: str
     ) -> None:
         
-        def add_final_touches(file_name: str, message: str):
+        def prep_N_format(file_name: str, message: str):
             """
             last chance to set the filename, add timestamp if applicablew
             and \n final touches.
@@ -350,9 +342,8 @@ class APILogger():
             except Exception as exc:
                 logzz.internal(
                     APILogger.ERROR_PRE,
-                    "ERROR: func: commit_message() There was an error attempting a write action on:\n"
-                    f"{logfile}\n"
-                    f"Check path and spelling. \nHere go yo Exception: {str(exc)}"
+                    f"func: commit_message() {logfile}\n"
+                    f"Check path and spelling. \n {str(exc)}"
                 )
 
         # Sometimes message may be None or a dixt. Just represent them in string form. 
@@ -361,7 +352,7 @@ class APILogger():
             message = str(message)
         
 
-        logfile, message = add_final_touches(file_name=file_name, message=message)
+        logfile, message = prep_N_format(file_name=file_name, message=message)
         #
         # Before Writiing to the file, check its size to see if it's time to archive it.
         #
@@ -373,24 +364,25 @@ class APILogger():
         commit_message(message, logfile)
 
 
-    def __print_screen(self, message: str, level: int, timestamp: bool) -> None:
+    def print2_screen(self, message: str, stream: int, timestamp: bool) -> None:
         """two guesses..."""
         msg_prefix: str
 
-        if level == self.Stream.INFO:
+        if stream == self.Stream.INFO:
             msg_prefix = self.INFO_PRE
 
-        elif level == self.Stream.WARN:
+        elif stream == self.Stream.WARN:
             msg_prefix = self.WARN_PRE
 
-        elif level == self.Stream.DEBUG:
+        elif stream == self.Stream.DEBUG:
             msg_prefix = self.DEBUG_PRE
 
-        elif level == self.Stream.ERROR:
+        elif stream == self.Stream.ERROR:
             msg_prefix = self.ERROR_PRE
         
         if timestamp:
-           message = message + f' § [{timestamp}]'
+            date_time: str = f"{self.d_and_t.date_time_now()[0]} {self.d_and_t.date_time_now()[1]}"
+            message = f"{message} § [{date_time}]"   
 
         self.prnt.to_screen(f"{msg_prefix}{message}")
 
@@ -451,6 +443,12 @@ class APILogger():
             self.internal_filename
         )
 
+    # This just became a seperate Stream. I feel I'd have been remiss 
+    # if not including some method to print to screen. 
+    def print(self, message: str, stream: int, timestamp: bool):
+        self.print2_screen(message, stream, timestamp)
+        
+
     def __set_log_filename(self, file_name: str) -> None:
         """This method creates the initial file. If a file already exists, it does nada.
         Sets up the logfile.
@@ -482,7 +480,7 @@ logzz = APILogger(
     debug_filename="DEBUG_logzz.log",
     error_filename="ERROR_logzz.log",
     warning_filename=None,
-    output_destination=APILogger.FILE,
+   # output_destination=APILogger.FILE,
     archive_log_files=True,
     log_file_max_size=20,
 )
