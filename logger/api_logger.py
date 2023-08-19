@@ -1,5 +1,9 @@
 from pathlib import Path
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime, 
+    time, 
+    timedelta
+)
 import re
 from os.path import join as os_join
 from .file_handler import filesys
@@ -16,6 +20,13 @@ class Stream():
     WARN: int = 40
     LOGIN: int = 60
     INTERNAL: int = 50
+
+    class Prefix():
+        INFO_PRE: str =  "INFO: "
+        DEBUG_PRE: str = "DEBUG: "
+        ERROR_PRE: str = "ERROR: "
+        WARN_PRE: str =  "WARNING: "
+        INTERNAL_PRE: str= '[ INTERNAL ]'
 
 class DateTime():
     def __init__(self):
@@ -123,19 +134,14 @@ class Archive():
         sub_dir: str = ""
         if stream == Stream.INFO:
             sub_dir = self.ArchiveSubDirectories.INFO_DIR
-
         elif stream == Stream.ERROR:
             sub_dir = self.ArchiveSubDirectories.ERROR_DIR
-
         elif stream == Stream.WARN:
             sub_dir = self.ArchiveSubDirectories.WARN_DIR
-
         elif stream == Stream.DEBUG:
             sub_dir = self.ArchiveSubDirectories.DEBUG_DIR
-
         elif stream == Stream.LOGIN:
             sub_dir = self.ArchiveSubDirectories.LOGIN_DIR
-
         return sub_dir
     #
     # Think about error handling in this method??
@@ -185,24 +191,24 @@ class Archive():
         # Move it to its appropriate sub directory.
         filesys.move(current_location, archive_location)
         
-        # Use the instance of the APILogger       
-        
+        # Use the instance of the APILogger               
         logzz.internal(
-            APILogger.INFO_PRE, 
-            f'Archiving...        File size: {logzz.log_file_max_size} lines.'
-            #f"\nRenamed: {logfile} to: {new_logfile_full}\n"
-            #f"\nMoved: {current_location} to: \n{archive_location}\n\n"
+            Stream.Prefix.INFO_PRE, 
+            f'Archiving the INFO logfile.      File size: {logzz.log_file_max_size} lines.'
         )
 
     def set_archive_directory(self, directory: str) -> None:
         """Will create the main directory for all logfiles to be archived to."""
         try:
             filesys.mkdir(directory)
+
         except Exception as exc:
-            logzz.internal(APILogger.ERROR_PRE, f"func: Archive.set_archive_directory() \n{str(exc)}")
+            logzz.internal(
+                Stream.Prefix.ERROR_PRE, 
+                f"func: Archive.set_archive_directory() \n{str(exc)}"
+            )
             
-
-
+            
 class APILogger():   
     INFO_PRE: str =  "INFO: "
     DEBUG_PRE: str = "DEBUG: "
@@ -221,7 +227,6 @@ class APILogger():
         error_filename: str = None,
         warning_filename: str = None,
         debug_filename: str = None,
-       # output_destination: str = FILE,
         archive_log_files: bool = True,
         log_file_max_size: int = 1000,
     ) -> None:
@@ -289,9 +294,9 @@ class APILogger():
             and \n final touches.
             """
             if file_name is None or file_name == "None":
-                file_name = APILogger.DEFAULT_LOG_FILE
+                file_name = self.DEFAULT_LOG_FILE
             else:
-                file_name = os_join(APILogger.LOG_DIRECTORY, file_name)
+                file_name = os_join(self.LOG_DIRECTORY, file_name)
 
             if timestamp:
                 date_time: str = f"{self.d_and_t.date_time_now()[0]} {self.d_and_t.date_time_now()[1]}"
@@ -312,7 +317,7 @@ class APILogger():
 
             except Exception as exc:
                 logzz.internal(
-                    APILogger.ERROR_PRE,
+                    Stream.Prefix.ERROR_PRE,
                     f"func: commit_message() {logfile}\n"
                     f"Check path and spelling. \n {str(exc)}"
                 )
@@ -342,17 +347,13 @@ class APILogger():
         msg_prefix: str
 
         if stream == Stream.INFO:
-            msg_prefix = self.INFO_PRE
-
+            msg_prefix = Stream.Prefix.INFO_PRE
         elif stream == Stream.WARN:
-            msg_prefix = self.WARN_PRE
-
+            msg_prefix = Stream.Prefix.WARN_PRE
         elif stream == Stream.DEBUG:
-            msg_prefix = self.DEBUG_PRE
-
+            msg_prefix = Stream.Prefix.DEBUG_PRE
         elif stream == Stream.ERROR:
-            msg_prefix = self.ERROR_PRE
-
+            msg_prefix = Stream.Prefix.ERROR_PRE
         elif stream == 0:
             msg_prefix=""
 
@@ -366,7 +367,7 @@ class APILogger():
     # Log Message Interfaces
     #
     def error(self, message: str, timestamp: bool = False) -> None:
-        message = f"{self.ERROR_PRE} {message}"
+        message = f"{Stream.Prefix.ERROR_PRE} {message}"
         self.__save_log_entry(
             message,
             Stream.ERROR,
@@ -375,7 +376,7 @@ class APILogger():
         )       
 
     def info(self, message: str, timestamp: bool = False) -> None:
-        message = f"{self.INFO_PRE} {message}"
+        message = f"{Stream.Prefix.INFO_PRE} {message}"
         self.__save_log_entry(
             message,
             Stream.INFO,
@@ -385,7 +386,7 @@ class APILogger():
         
 
     def warn(self, message: str, timestamp: bool = False) -> None:
-        message = f"{self.WARN_PRE} {message}"
+        message = f"{Stream.Prefix.WARN_PRE} {message}"
         self.__save_log_entry(
             message,
             Stream.WARN,
@@ -394,7 +395,7 @@ class APILogger():
         )       
 
     def debug(self, message: str, timestamp: bool = False) -> None:
-        message = f"{self.DEBUG_PRE} {message}"
+        message = f"{Stream.Prefix.DEBUG_PRE} {message}"
         self.__save_log_entry(
             message,
             Stream.DEBUG,
@@ -404,7 +405,7 @@ class APILogger():
 
     def internal(self, stream2: int, message: str, timestamp: bool = False) -> None:
         # Brand the message
-        message = f'{self.INTERNAL_PRE}  {stream2} {message}'
+        message = f'{Stream.Prefix.INTERNAL_PRE}  {stream2} {message}'
         self.__save_log_entry( 
             message, 
             Stream.INTERNAL, 
@@ -434,7 +435,7 @@ class APILogger():
 
         except Exception as e:
             logzz.internal(
-                APILogger.ERROR_PRE,
+                Stream.Prefix.ERROR_PRE,
                 " func:  __set_log_filename() "
             )
 
