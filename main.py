@@ -7,8 +7,6 @@ if __name__ == "__main__":
     # DEMO THE ARCHIVE FEATURE:
     # I have set the file size limit to 20 lines to give a loook at how the archive feature works. 
 
-
-    # make sure the logfiles are created.
     sleep(2)
     logzz.print("Working...")
 
@@ -26,4 +24,5 @@ if __name__ == "__main__":
                " THere is no Log file designated for 'warning',"
                " so it will go in the default log file\n", timestamp=1)    
     logzz.error("An error has occured.")
+    logzz.login("Client: 212.456.45.67 logged in @: ", timestamp=1)
     logzz.debug("A message you can use to debug, with timestamp", timestamp=1)

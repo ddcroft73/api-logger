@@ -11,6 +11,16 @@ from .settings import settings
 
 
 """
+API Logger - 
+
+This is just a simple way to add a display, if you will, to my APIS. THe nature of a web API doesnt allow you to
+get any decent feedback from the terminal. This little module is compact and it simply allows 
+you to insert log entries anywhere you want and they will be kept in organized files. You can set the 
+Line size of the log files, and once that ceiling is realoized, the logs will be exported and organized into
+an archive location. Do not confuse this with theway the Python logger works. I opted to use "Streams" and not
+set levels. A stream is just a file that contains a certain type of log entry. 
+The Log locations are set in logger.settings. and default to the cwd. It will put the logs/ into the same directory
+as your entrypoint. main.py in this demo.
 """
 
 class Stream():
@@ -18,8 +28,8 @@ class Stream():
     DEBUG: int = 20
     ERROR: int = 30
     WARN: int = 40
-    LOGIN: int = 60
     INTERNAL: int = 50
+    LOGIN: int = 60
 
     class Prefix():
         INFO_PRE: str =  "INFO: "
@@ -27,11 +37,9 @@ class Stream():
         ERROR_PRE: str = "ERROR: "
         WARN_PRE: str =  "WARNING: "
         INTERNAL_PRE: str= '[ INTERNAL ]'
+        LOGIN_PRE: str = "LOGIN: "
 
 class DateTime():
-    def __init__(self):
-        pass
-        #print("DateTime class... created")
 
     @staticmethod
     def date_time_now() -> tuple[str]:
@@ -50,6 +58,8 @@ class DateTime():
 class ScreenPrinter():
     def to_screen(self, message: str) -> None:
         print(message)
+
+
 
 class Archive():
     """
@@ -89,12 +99,11 @@ class Archive():
 
     def __init__(self, archive_directory: str, ):
         """
-        
+        Archive
         """
         self.archive_directory = archive_directory
         self.create_archive_sub_directories()
 
-        #print("Archive class... created")
 
     def clear_subs(self, subs: list[str]) -> None:
         '''
@@ -103,12 +112,12 @@ class Archive():
         '''
         for sub in subs:
             filesys.rmdir(os_join(self.archive_directory, sub))
-            print(f"Deleted: {os_join(self.archive_directory, sub)}")
+            logzz.internal(Stream.Prefix.INFO_PRE,f"Deleted: {os_join(self.archive_directory, sub)}")
 
         # Rebuild the archive directories... we are just clearing not deleting. They ned to be 
         # present incase an archive needs to take place. 
         self.create_archive_sub_directories()
-        print(f'func: clear_subs() Recreated Sub Directories')
+        logzz.internal(Stream.Prefix.INFO_PRE, f'func: clear_subs() Recreated Sub Directories')
         
     def create_archive_sub_directories(self) -> None:
         """
@@ -208,15 +217,9 @@ class Archive():
                 f"func: Archive.set_archive_directory() \n{str(exc)}"
             )
             
-            
+
 class APILogger():   
-    INFO_PRE: str =  "INFO: "
-    DEBUG_PRE: str = "DEBUG: "
-    ERROR_PRE: str = "ERROR: "
-    WARN_PRE: str =  "WARNING: "
-    INTERNAL_PRE: str= '[ INTERNAL ]'
-   # LOGIN_PRE: str ="LOGIN INFO"
-   
+
     LOG_DIRECTORY: str = settings.LOG_DIRECTORY    
     LOG_ARCHIVE_DIRECTORY: str = settings.LOG_ARCHIVE_DIRECTORY
     DEFAULT_LOG_FILE: str = settings.DEFAULT_LOG_FILE
@@ -227,6 +230,7 @@ class APILogger():
         error_filename: str = None,
         warning_filename: str = None,
         debug_filename: str = None,
+        login_filename: str = None,
         archive_log_files: bool = True,
         log_file_max_size: int = 1000,
     ) -> None:
@@ -240,14 +244,15 @@ class APILogger():
         self.start_date: str = time_date[0] 
         self.start_time: str = time_date[1] 
 
-        # file to log internal messages: his is by Tdefault, since it would be difficult to ever see any errors 
-        # the server may encounter. 
+        # file to log internal messages: This is by default, since it would be difficult to ever see any errors 
+        # the server may encounter, they are all remanded to the internal.log file. 
         self.internal_filename = 'internal.log'
 
         self.info_filename = info_filename
         self.error_filename = error_filename
         self.warning_filename = warning_filename
         self.debug_filename = debug_filename
+        self.login_filename = login_filename
         self.archive_log_files = archive_log_files 
         self.log_file_max_size = log_file_max_size    # DEBUGING=5      
 
@@ -267,7 +272,8 @@ class APILogger():
             self.error_filename,
             self.warning_filename,
             self.debug_filename,
-            self.internal_filename
+            self.internal_filename,
+            self.login_filename
         ]
 
         for file_name in file_names:
@@ -278,7 +284,7 @@ class APILogger():
             self.__set_log_filename(self.DEFAULT_LOG_FILE)
 
     #
-    # Pretty much the engine.
+    # __save_log_entry().
     #   
     def __save_log_entry(
             self,  
@@ -287,7 +293,9 @@ class APILogger():
             timestamp: bool, 
             file_name: str
     ) -> None:
+        '''
         
+        '''
         def prep_N_format(file_name: str, message: str):
             """
             last chance to set the filename, add timestamp if applicablew
@@ -318,11 +326,11 @@ class APILogger():
             except Exception as exc:
                 logzz.internal(
                     Stream.Prefix.ERROR_PRE,
-                    f"func: commit_message() {logfile}\n"
+                    f"func: commit_message() \n"
                     f"Check path and spelling. \n {str(exc)}"
                 )
 
-        # Sometimes message may be None or a dixt. Just represent them in string form. 
+        # Sometimes message may be None or a dict. Just represent them in string form. 
         if message == None: message = "None"
         if isinstance(message, dict):
             message = str(message)        
@@ -354,6 +362,8 @@ class APILogger():
             msg_prefix = Stream.Prefix.DEBUG_PRE
         elif stream == Stream.ERROR:
             msg_prefix = Stream.Prefix.ERROR_PRE
+        elif stream == Stream.LOGIN:
+            msg_prefix = Stream.Prefix.LOGIN_PRE
         elif stream == 0:
             msg_prefix=""
 
@@ -382,8 +392,7 @@ class APILogger():
             Stream.INFO,
             timestamp,
             self.info_filename
-        )       
-        
+        )               
 
     def warn(self, message: str, timestamp: bool = False) -> None:
         message = f"{Stream.Prefix.WARN_PRE} {message}"
@@ -401,7 +410,16 @@ class APILogger():
             Stream.DEBUG,
             timestamp,
             self.debug_filename
-        )        
+        )  
+
+    def login(self, message: str, timestamp: bool = False) -> None:
+        message = f"{Stream.Prefix.LOGIN_PRE} {message}"
+        self.__save_log_entry(
+            message,
+            Stream.LOGIN,
+            timestamp,
+            self.login_filename
+        )      
 
     def internal(self, stream2: int, message: str, timestamp: bool = False) -> None:
         # Brand the message
@@ -439,17 +457,13 @@ class APILogger():
                 " func:  __set_log_filename() "
             )
 
-
-# 
-# I usuallly instantiate the logger in the logger file (HERE) after the class 
-# definitions, and them import it wherever I need it.
-#  
+  
 logzz = APILogger(
     info_filename="INFO_logzz.log",
     debug_filename="DEBUG_logzz.log",
     error_filename="ERROR_logzz.log",
+    login_filename="LOGIN_logzz.log",
     warning_filename=None,
-   # output_destination=APILogger.FILE,
     archive_log_files=True,
     log_file_max_size=20,
 )
