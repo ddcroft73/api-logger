@@ -17,7 +17,7 @@ if __name__ == "__main__":
           logzz.print(f'.printing line:{i}.')
         logzz.info(log_msg+str(i))
 
-    logzz.print("Done!", stream=10, timestamp=True)
+    logzz.print("Done!", stream=10, timestamp=True)##
 
     # And a few others as well. 
     logzz.warn("THis is a warning log with timestamp."
