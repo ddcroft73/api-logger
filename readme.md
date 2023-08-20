@@ -9,5 +9,6 @@ It's basically a simple logger that organizes all the logs for me. It's not as t
 - DEBUG
 - INTERNAL Any message error, info or other that is derived from the logger class.
 - LOGIN (New: I Feel the need to log every login attempt, but I am still adding this.)
+- SCREEN (After all Ive said about APIS logging to the screen, I still feel I need this.)
 
 It is up to the programmer where to use these and it just marks the logs and organizes them. 
