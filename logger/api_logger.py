@@ -6,9 +6,14 @@ from datetime import (
 )
 import re
 from os.path import join as os_join
-from .file_handler import filesys
+from .file_handler import (
+    filesys, 
+    FileRenameError,
+    FileMoveError,
+    CreateDirectoryError,
+    FileWriteError,
+)
 from .settings import settings
-
 
 """
 API Logger - 
@@ -114,8 +119,8 @@ class Archive():
             filesys.rmdir(os_join(self.archive_directory, sub))
             logzz.internal(Stream.Prefix.INFO_PRE,f"Deleted: {os_join(self.archive_directory, sub)}")
 
-        # Rebuild the archive directories... we are just clearing not deleting. They ned to be 
-        # present incase an archive needs to take place. 
+        # Rebuild the archive directories... just clearing not deleting. They need to be 
+        # present incase an archive needs to take place. It's just easier if the dirs are always there.
         self.create_archive_sub_directories()
         logzz.internal(Stream.Prefix.INFO_PRE, f'func: clear_subs() Recreated Sub Directories')
         
@@ -123,8 +128,8 @@ class Archive():
         """
         Creates the sub directories to house the archived logs.
         """
-        for sub in self.ArchiveSubDirectories.to_list():
-            state: str = filesys.mkdir(os_join(self.archive_directory, sub))
+        for dir in self.ArchiveSubDirectories.to_list():
+            state: str = filesys.mkdir(os_join(self.archive_directory, dir))
             msg: str = (
                 "was " if state == "created" else "already"
             )
@@ -132,6 +137,8 @@ class Archive():
         
     def get_line_cnt(self, file_name: str) -> int:
         """
+        Returns the size of the logfile in line count. This is total line count 
+        that includes the header and any whitespace (Empty lines).
         """
         file_lines: list[str] = filesys.get_contents(file_name).split("\n")
         return len(file_lines)
@@ -188,30 +195,38 @@ class Archive():
                 f"{fname_no_ext}_{date}_{time}.log",
             )
 
-        # Rename the current logfile.
-        new_logfile_path, new_logfile_only = get_new_filename(logfile)
-        filesys.rename(logfile, new_logfile_path)
-        
-        # select right logfile type to store it.
-        sub_dir: str = self.get_sub_directory(stream)
-        current_location: str = new_logfile_path
-        archive_location: str = f'{self.archive_directory}/{sub_dir}/{new_logfile_only}'
+        try:
+            # Rename the current logfile.
+            new_logfile_path, new_logfile_only = get_new_filename(logfile)
+            filesys.rename(logfile, new_logfile_path)
+            
+            # select right logfile type to store it.
+            sub_dir: str = self.get_sub_directory(stream)
+            current_location: str = new_logfile_path
+            archive_location: str = f'{self.archive_directory}/{sub_dir}/{new_logfile_only}'
 
-        # Move it to its appropriate sub directory.
-        filesys.move(current_location, archive_location)
-        
-        # Use the instance of the APILogger               
-        logzz.internal(
-            Stream.Prefix.INFO_PRE, 
-            f'Archiving the INFO logfile.      File size: {logzz.log_file_max_size} lines.'
-        )
+            # Move it to its appropriate sub directory.
+            filesys.move(current_location, archive_location)
+            
+            # Use the instance of the APILogger               
+            logzz.internal(
+                Stream.Prefix.INFO_PRE, 
+                f'Archiving the INFO logfile.      File size: {logzz.log_file_max_size} lines.'
+            )
+
+        except FileRenameError as exc:
+            logzz.internal(Stream.Prefix.ERROR_PRE, str(exc))     
+
+        except FileMoveError:
+            logzz.internal(Stream.Prefix.ERROR_PRE, str(exc))     
+
 
     def set_archive_directory(self, directory: str) -> None:
         """Will create the main directory for all logfiles to be archived to."""
         try:
             filesys.mkdir(directory)
 
-        except Exception as exc:
+        except CreateDirectoryError as exc:
             logzz.internal(
                 Stream.Prefix.ERROR_PRE, 
                 f"func: Archive.set_archive_directory() \n{str(exc)}"
@@ -323,7 +338,7 @@ class APILogger():
             try:
                 filesys.write(file_name, message, mode="a")
 
-            except Exception as exc:
+            except FileWriteError as exc:
                 logzz.internal(
                     Stream.Prefix.ERROR_PRE,
                     f"func: commit_message() \n"
@@ -451,10 +466,10 @@ class APILogger():
         try:
             filesys.write(file_name, header, "w")
 
-        except Exception as e:
+        except FileWriteError as exc:
             logzz.internal(
                 Stream.Prefix.ERROR_PRE,
-                " func:  __set_log_filename() "
+                f" func:  __set_log_filename() \n{str(exc)}"
             )
 
   
