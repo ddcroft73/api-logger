@@ -110,14 +110,14 @@ class Archive():
         self.create_archive_sub_directories()
 
 
-    def clear_subs(self, subs: list[str]) -> None:
+    def clear_subs(self, sub_directories: list[str]) -> None:
         '''
         Will delete one or more of the archive sub directories. once done it recreates whatever isnt there
         This sub is meant to clear the directories not delete and leave it. 
         '''
-        for sub in subs:
-            filesys.rmdir(os_join(self.archive_directory, sub))
-            logzz.internal(Stream.Prefix.INFO_PRE,f"Deleted: {os_join(self.archive_directory, sub)}")
+        for sub_dir in sub_directories:
+            filesys.rmdir(os_join(self.archive_directory, sub_dir))
+            logzz.internal(Stream.Prefix.INFO_PRE,f"Deleted: {os_join(self.archive_directory, sub_dir)}")
 
         # Rebuild the archive directories... just clearing not deleting. They need to be 
         # present incase an archive needs to take place. It's just easier if the dirs are always there.
@@ -128,8 +128,8 @@ class Archive():
         """
         Creates the sub directories to house the archived logs.
         """
-        for dir in self.ArchiveSubDirectories.to_list():
-            state: str = filesys.mkdir(os_join(self.archive_directory, dir))
+        for sub_dir in self.ArchiveSubDirectories.to_list():
+            state: str = filesys.mkdir(os_join(self.archive_directory, sub_dir))
             msg: str = (
                 "was " if state == "created" else "already"
             )
