@@ -271,9 +271,9 @@ class APILogger():
         self.archive_log_files = archive_log_files 
         self.log_file_max_size = log_file_max_size    # DEBUGING=5      
 
-        self.__handle_file_setup()
+        self.handle_file_setup()
 
-    def __handle_file_setup(self) -> None:
+    def handle_file_setup(self) -> None:
         """
         Handles the creation of any user defined logfiles, the Default
         log file, and the vreation of the archive directory to be used when archiving
