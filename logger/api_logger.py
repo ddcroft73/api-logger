@@ -249,15 +249,12 @@ class APILogger():
         archive_log_files: bool = True,
         log_file_max_size: int = 1000,
     ) -> None:
+        self.stream = Stream()
         self.archive = Archive(
             archive_directory=self.LOG_ARCHIVE_DIRECTORY
         )
         self.d_and_t = DateTime()
         self.prnt = ScreenPrinter()
-
-        time_date: tuple[str] = self.d_and_t.date_time_now()        
-        self.start_date: str = time_date[0] 
-        self.start_time: str = time_date[1] 
 
         # file to log internal messages: This is by default, since it would be difficult to ever see any errors 
         # the server may encounter, they are all remanded to the internal.log file. 
@@ -271,9 +268,12 @@ class APILogger():
         self.archive_log_files = archive_log_files 
         self.log_file_max_size = log_file_max_size    # DEBUGING=5      
 
-        self.handle_file_setup()
+        self.__handle_file_setup()
+    
+    def setup(self) -> None:
+        self.__handle_file_setup()
 
-    def handle_file_setup(self) -> None:
+    def __handle_file_setup(self) -> None:
         """
         Handles the creation of any user defined logfiles, the Default
         log file, and the vreation of the archive directory to be used when archiving
