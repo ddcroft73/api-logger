@@ -450,8 +450,12 @@ class APILogger():
     # if not including some method to print to screen. 
     def print(self, message: str, stream: int=0, timestamp: bool=False):
         self.print2_screen(message, stream, timestamp)
-        
 
+    
+    def create_logfile(self, filename: str) -> None:
+        self.__set_log_filename(filename)
+    
+    
     def __set_log_filename(self, file_name: str) -> None:
         """This method creates the initial file. If a file already exists, it does nada.
         Sets up the logfile.
