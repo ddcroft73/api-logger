@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+#import aiofiles # will need this for async read\write
 
 '''
 An extra layer used for all actions associated with the file system. 
@@ -39,8 +40,8 @@ class FileHandler():
             return data
         
         except FileNotFoundError:
-            raise FileExistsError(f'Cannot find: {file_name}')
-        
+            raise FileNotFoundError(f'Cannot find: {file_name}')
+
         except Exception as exc:
             raise FileReadError(
                 f'An Error occured trying to read: {file_name}.\n {str(exc)}'
@@ -90,13 +91,13 @@ class FileHandler():
         Writes data to a file. THe mode is adjustable so append, overwrite. All fairgame. 
         '''
         try:
-            with open(file_name, mode) as f:
-                f.write(data)
+             with open(file_name, mode=mode) as f:
+                 f.write(data)
 
         except Exception as exc:
             raise FileWriteError(
-                f"The following error occured attempting to write to file: {file_name} in {mode} mode.\n{str(exc)}"
-            )        
+            f"The following error occurred attempting to write to file: {file_name} in {mode} mode.\n{str(exc)}"
+        )
         
     def rename(self, old_filename: str, new_filename: str) -> None:
         try:

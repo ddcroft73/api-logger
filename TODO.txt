@@ -1,5 +1,0 @@
-1. Refactor the logger. 
-   a. Drop the router method  DONE
-   b. 86 ready_messages.      DONE
-   c. Seperat all classes.    DONE
-   d. Put Archive in its own file and import. NOT DONE. Causes circular inports. Leave As IS.

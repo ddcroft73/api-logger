@@ -13,7 +13,7 @@ from .file_handler import (
     CreateDirectoryError,
     FileWriteError,
 )
-from .settings import settings
+
 
 """
 API Logger - 
@@ -114,6 +114,8 @@ class Archive():
         '''
         Will delete one or more of the archive sub directories. once done it recreates whatever isnt there
         This sub is meant to clear the directories not delete and leave it. 
+
+        THis method was added for the deletion of sub directories and archive material remotely.
         '''
         for sub_dir in sub_directories:
             filesys.rmdir(os_join(self.archive_directory, sub_dir))
@@ -159,9 +161,7 @@ class Archive():
         elif stream == Stream.LOGIN:
             sub_dir = self.ArchiveSubDirectories.LOGIN_DIR
         return sub_dir
-    #
-    # Think about error handling in this method??
-    #
+    
     def archive_logfile(self, logfile: str, stream: int) -> None:
         """
             Moves the logfile from its old location to a new location after renaming .
@@ -208,7 +208,7 @@ class Archive():
             # Move it to its appropriate sub directory.
             filesys.move(current_location, archive_location)
             
-            # Use the instance of the APILogger               
+            # Use the instance of the APILogger to report an archive was successful           
             logzz.internal(
                 Stream.Prefix.INFO_PRE, 
                 f'Archiving the INFO logfile.      File size: {logzz.log_file_max_size} lines.'
@@ -234,53 +234,57 @@ class Archive():
             
 
 class APILogger():   
+    LOG_DIRECTORY: str = './logs'
+    LOG_ARCHIVE_DIRECTORY: str = f"{LOG_DIRECTORY}/log-archives"
+    DEFAULT_LOG_FILE: str = f"{LOG_DIRECTORY}/DEFAULT-app-logs.log"  
 
-    LOG_DIRECTORY: str = settings.LOG_DIRECTORY    
-    LOG_ARCHIVE_DIRECTORY: str = settings.LOG_ARCHIVE_DIRECTORY
-    DEFAULT_LOG_FILE: str = settings.DEFAULT_LOG_FILE
+    _instance = None
+    _initialized = False
 
-    def __init__(
-        self,
-        info_filename: str = None,
-        error_filename: str = None,
-        warning_filename: str = None,
-        debug_filename: str = None,
-        login_filename: str = None,
-        archive_log_files: bool = True,
-        log_file_max_size: int = 1000,
-    ) -> None:
-        self.stream = Stream()
-        self.archive = Archive(
-            archive_directory=self.LOG_ARCHIVE_DIRECTORY
-        )
-        self.d_and_t = DateTime()
-        self.prnt = ScreenPrinter()
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(APILogger, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
-        # file to log internal messages: This is by default, since it would be difficult to ever see any errors 
-        # the server may encounter, they are all remanded to the internal.log file. 
-        self.internal_filename = 'internal.log'
 
-        self.info_filename = info_filename
-        self.error_filename = error_filename
-        self.warning_filename = warning_filename
-        self.debug_filename = debug_filename
-        self.login_filename = login_filename
-        self.archive_log_files = archive_log_files 
-        self.log_file_max_size = log_file_max_size    # DEBUGING=5      
+    def __init__(self, *args, **kwargs):
+        if not self._initialized:
+            self.stream = Stream()
+            self.archive = Archive(archive_directory=APILogger.LOG_ARCHIVE_DIRECTORY)
+            self.d_and_t = DateTime()
+            self.prnt = ScreenPrinter()
+            #
+            # file to log internal messages: This is by default, since it would be difficult to ever see any errors 
+            # the class may encounter, they are all remanded to the internal.log file. 
+            #
+            self.internal_filename = 'internal.log'
 
-        self.__handle_file_setup()
-    
+            self.info_filename = kwargs.get('info_filename')
+            self.error_filename = kwargs.get('error_filename')
+            self.warning_filename =  kwargs.get('warning_filename')
+            self.debug_filename =  kwargs.get('debug_filename')
+            self.login_filename =  kwargs.get('login_filename')
+            self.archive_log_files =  kwargs.get('archive_log_files')
+            self.log_file_max_size =  kwargs.get('log_file_max_size')    # DEBUGING=5     
+
+            self._initialized = True
+            self.__handle_file_setup()
+   
+
     def setup(self) -> None:
         self.__handle_file_setup()
 
     def __handle_file_setup(self) -> None:
         """
         Handles the creation of any user defined logfiles, the Default
-        log file, and the vreation of the archive directory to be used when archiving
+        log file, and the creation of the archive directory to be used when archiving
         excess lof files.
+
+        thisdoes not have to be async... 
         """
         if self.archive_log_files:
-            self.archive.set_archive_directory(self.LOG_ARCHIVE_DIRECTORY)
+            self.archive.set_archive_directory(APILogger.LOG_ARCHIVE_DIRECTORY)
 
         file_names = [
             self.info_filename,
@@ -293,10 +297,10 @@ class APILogger():
 
         for file_name in file_names:
             if file_name is not None:
-                self.__set_log_filename(os_join(self.LOG_DIRECTORY, file_name))
+                self.__set_log_filename(os_join(APILogger.LOG_DIRECTORY, file_name))
 
         if any(filename is None for filename in file_names):
-            self.__set_log_filename(self.DEFAULT_LOG_FILE)
+            self.__set_log_filename(APILogger.DEFAULT_LOG_FILE)
 
     #
     # __save_log_entry().
@@ -317,9 +321,9 @@ class APILogger():
             and \n final touches.
             """
             if file_name is None or file_name == "None":
-                file_name = self.DEFAULT_LOG_FILE
+                file_name = APILogger.DEFAULT_LOG_FILE
             else:
-                file_name = os_join(self.LOG_DIRECTORY, file_name)
+                file_name = os_join(APILogger.LOG_DIRECTORY, file_name)
 
             if timestamp:
                 date_time: str = f"{self.d_and_t.date_time_now()[0]} {self.d_and_t.date_time_now()[1]}"
@@ -475,8 +479,8 @@ class APILogger():
                 Stream.Prefix.ERROR_PRE,
                 f" func:  __set_log_filename() \n{str(exc)}"
             )
-
   
+
 logzz = APILogger(
     info_filename="INFO_logzz.log",
     debug_filename="DEBUG_logzz.log",
