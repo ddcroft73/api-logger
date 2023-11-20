@@ -25,8 +25,9 @@ It's pretty easy to add more streams if you need more logging types to track.
 
 1. **Update the Stream** : in api_logger.py edit `class Stream`, and `class Stream.Prefix`. Here you will add the code to represent your new stream.
 2. **Update Archive Directory**: In `class Archive`, locate`class ArchiveSubDirectories` and add your stream to the class.
-3. **_handle_file_setup** : locate the list `file_names` and add a new name.
-4. **Add A new Log Entry Interface** : THis is easier than it sounds. You need to scroll down to line: 396 where the log entry 
+3. **Update filename in __init__** : In the APILogger __init__ method you will need to add your new file name. Basically look for this line: `self.info_filename = kwargs.get('info_filename')` copy it, and paste it below, then change the filename and attribute to match the new stream.
+4. **_handle_file_setup** : locate the list `file_names` and add a new name.
+5. **Add A new Log Entry Interface** : THis is easier than it sounds. You need to scroll down to line: 396 where the log entry 
 interfaces begin. Just copy the entire method: `def error()` and paste it at the bottom, or underneath error. Doesn't really matter. Now change all the references to `error` with the name of your new stream.
 
 ### Example
