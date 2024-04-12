@@ -3,7 +3,8 @@ import shutil
 #import aiofiles # will need this for async read\write
 
 '''
-An extra layer used for all actions associated with the file system. 
+This is just a set of classes that adds a layer of abstraction to the file read\write\move\copy operations.
+It is useful as well when testing the logger. It allows me to easily mock these operations as needed.
 '''
 
 class CreateDirectoryError(Exception):

@@ -4,7 +4,7 @@ from datetime import (
     time, 
     timedelta
 )
-import re
+import re, json
 from os.path import join as os_join
 from .file_handler import (
     filesys, 
@@ -14,6 +14,7 @@ from .file_handler import (
     FileWriteError,
 )
 
+from typing import Optional
 
 """
 API Logger - 
@@ -208,12 +209,6 @@ class Archive():
             # Move it to its appropriate sub directory.
             filesys.move(current_location, archive_location)
             
-            # Use the instance of the APILogger to report an archive was successful           
-            logzz.internal(
-                Stream.Prefix.INFO_PRE, 
-                f'Archiving the INFO logfile.      File size: {logzz.log_file_max_size} lines.'
-            )
-
         except FileRenameError as exc:
             logzz.internal(Stream.Prefix.ERROR_PRE, str(exc))     
 
@@ -362,7 +357,10 @@ class APILogger():
         # Before Writiing to the file, check its size to see if it's time to archive it.
         #
         if self.archive.get_line_cnt(logfile) >= self.log_file_max_size:
-            self.archive.archive_logfile(logfile=logfile, stream=stream)            
+            self.archive.archive_logfile(
+                logfile=logfile, 
+                stream=stream
+            )            
             # create new log file in place of the other, with the original name
             self.__set_log_filename(logfile)
 
@@ -391,11 +389,35 @@ class APILogger():
             message = f"{message} § [{date_time}]"   
 
         self.prnt.to_screen(f"{msg_prefix}{message}")
+    
+
+    def __format_dict_string(self, data_dict: dict) -> str:
+        """
+        Simply converts a passed in dict into a string with indentation so it
+        can be written to the logs. The reason I did this was because it gave a more readable
+        output for certain information when logging. THe json, or key[value] pairing just makes
+        sense for so many things.
+        """
+        json_string = json.dumps(data_dict, indent=4, default=str)
+        return json_string
 
     #
-    # Log Message Interfaces
+    # Log Message Interfaces:
     #
-    def error(self, message: str, timestamp: bool = False) -> None:
+
+    def error(self, 
+        message: str, 
+        timestamp: bool = False, 
+        dict_to_string: bool = False, 
+        heading: Optional[str] = None
+    ) -> None:
+        
+        if dict_to_string: 
+            message = self.__format_dict_string(message)
+        
+        if heading:
+            Stream.Prefix.ERROR_PRE = f"{Stream.Prefix.ERROR_PRE}  {heading}\n"
+
         message = f"{Stream.Prefix.ERROR_PRE} {message}"
         self.__save_log_entry(
             message,
@@ -404,7 +426,19 @@ class APILogger():
             self.error_filename
         )       
 
-    def info(self, message: str, timestamp: bool = False) -> None:
+    def info(self, 
+        message: str, 
+        timestamp: bool = False, 
+        dict_to_string: bool = False, 
+        heading: Optional[str] = None
+    ) -> None:
+        
+        if dict_to_string: 
+            message = self.__format_dict_string(message)
+
+        if heading:
+            Stream.Prefix.INFO_PRE = f"{Stream.Prefix.INFO_PRE}  {heading}\n"
+
         message = f"{Stream.Prefix.INFO_PRE} {message}"
         self.__save_log_entry(
             message,
@@ -413,7 +447,19 @@ class APILogger():
             self.info_filename
         )               
 
-    def warn(self, message: str, timestamp: bool = False) -> None:
+    def warn(self, 
+        message: str, 
+        timestamp: bool = False, 
+        dict_to_string: bool = False,
+        heading: Optional[str] = None
+    ) -> None:
+        
+        if dict_to_string: 
+            message = self.__format_dict_string(message)
+
+        if heading:
+            Stream.Prefix.WARN_PRE = f"{Stream.Prefix.WARN_PRE}  {heading}\n"
+
         message = f"{Stream.Prefix.WARN_PRE} {message}"
         self.__save_log_entry(
             message,
@@ -422,7 +468,19 @@ class APILogger():
             self.warning_filename
         )       
 
-    def debug(self, message: str, timestamp: bool = False) -> None:
+    def debug(self, 
+        message: str, 
+        timestamp: bool = False, 
+        dict_to_string: bool = False,
+        heading: Optional[str] = None
+    ) -> None:
+        
+        if dict_to_string: 
+            message = self.__format_dict_string(message)
+        
+        if heading:
+            Stream.Prefix.DEBUG_PRE = f"{Stream.Prefix.DEBUG_PRE}  {heading}\n"
+
         message = f"{Stream.Prefix.DEBUG_PRE} {message}"
         self.__save_log_entry(
             message,
@@ -431,7 +489,19 @@ class APILogger():
             self.debug_filename
         )  
 
-    def login(self, message: str, timestamp: bool = False) -> None:
+    def login(self,
+        message: str, 
+        timestamp: bool = False, 
+        dict_to_string: bool = False,
+        heading: Optional[str] = None
+    ) -> None:
+        
+        if dict_to_string: 
+            message = self.__format_dict_string(message)
+        
+        if heading:
+            Stream.Prefix.LOGIN_PRE = f"{Stream.Prefix.LOGIN_PRE}{heading}\n"
+
         message = f"{Stream.Prefix.LOGIN_PRE} {message}"
         self.__save_log_entry(
             message,
@@ -440,17 +510,8 @@ class APILogger():
             self.login_filename
         )      
 
-    def internal(self, stream2: int, message: str, timestamp: bool = False) -> None:
-        # Brand the message
-        message = f'{Stream.Prefix.INTERNAL_PRE}  {stream2} {message}'
-        self.__save_log_entry( 
-            message, 
-            Stream.INTERNAL, 
-            timestamp, 
-            self.internal_filename
-        )
 
-    # This just became a seperate Stream. I feel I'd have been remiss 
+    # This just became a separate Stream. I feel I'd have been remiss 
     # if not including some method to print to screen. 
     def print(self, message: str, stream: int=0, timestamp: bool=False):
         self.print2_screen(message, stream, timestamp)
@@ -481,7 +542,7 @@ class APILogger():
             )
   
 
-logzz = APILogger(
+logzz: APILogger = APILogger(
     info_filename="INFO_logzz.log",
     debug_filename="DEBUG_logzz.log",
     error_filename="ERROR_logzz.log",
